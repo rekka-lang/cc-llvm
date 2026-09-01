@@ -70,7 +70,7 @@ pub fn main(_: std.process.Init) !void {
     var major: c_uint = undefined;
     var minor: c_uint = undefined;
     var patch: c_uint = undefined;
-    llvm.core.LLVMGetVersion(&major, &minor, &patch);
+    llvm.LLVMGetVersion(&major, &minor, &patch);
 
     std.log.info("The version of LLVM is \"{}.{}.{}\".", .{ major, minor, patch });
 }

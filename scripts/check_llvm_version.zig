@@ -18,7 +18,7 @@ pub fn main(init: std.process.Init) !void {
     var major: c_uint = undefined;
     var minor: c_uint = undefined;
     var patch: c_uint = undefined;
-    llvm.core.LLVMGetVersion(&major, &minor, &patch);
+    llvm.LLVMGetVersion(&major, &minor, &patch);
 
     const packed_version = .{ major, minor, patch };
 

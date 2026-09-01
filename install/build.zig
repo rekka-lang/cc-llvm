@@ -8,14 +8,15 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const module = b.addModule("llvm", .{
-        .root_source_file = b.path("src/root.zig"),
+    const translate_c = b.addTranslateC(.{
+        .root_source_file = b.path("src/root.h"),
         .target = target,
         .optimize = optimize,
-        .link_libcpp = true,
     });
+    translate_c.addIncludePath(b.path("include"));
 
-    module.addIncludePath(b.path("include"));
+    const module = translate_c.addModule("llvm");
+    module.link_libcpp = true;
 
     const libraries = try std.Io.Dir.openDir(b.build_root.handle, b.graph.io, "lib", .{ .iterate = true });
     defer libraries.close(b.graph.io);
