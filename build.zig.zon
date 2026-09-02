@@ -1,0 +1,54 @@
+.{
+    .name = .cc_llvm,
+    .version = "21.1.8+1",
+    // When forking a Zig project, this id should be regenerated (delete the
+    // field and run `zig build`) if the upstream project is still maintained.
+    // Otherwise, the fork is *hostile*, attempting to take control over the
+    // original project's identity. Thus it is recommended to leave the comment
+    // on the following line intact, so that it shows up in code reviews that
+    // modify the field.
+    .fingerprint = 0x694a1582852f538b, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .stdx = .{
+            .url = "https://github.com/trevorswan11/stdx/archive/refs/tags/v2.8.1.tar.gz",
+            .hash = "stdx-2.8.1-dNitg4AdCQBPQDKbgOAtTWF3-IT-dPru72vm_DHxQ6xT",
+        },
+        .llvm = .{
+            .url = "https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-21.1.8.tar.gz",
+            .hash = "N-V-__8AABpqQW-SXByMsTbdc-Sm0xuxtXzfQBvflhYdUshy",
+        },
+        .libxml2 = .{
+            .url = "https://gitlab.gnome.org/GNOME/libxml2/-/archive/v2.15.1/libxml2-v2.15.1.tar.gz",
+            .hash = "N-V-__8AAGDwMQF2IHBGW-iuy3HD7ZCfVEALdBc3_ZVjfUV3",
+        },
+        .zlib = .{
+            .url = "https://github.com/madler/zlib/archive/refs/tags/v1.3.2.tar.gz",
+            .hash = "N-V-__8AAI4ANwDM8MWhHTUFLKfvLE_n2NQk6mh0sFDzhTqO",
+        },
+        .zstd = .{
+            .url = "https://github.com/facebook/zstd/archive/refs/tags/v1.5.7.tar.gz",
+            .hash = "N-V-__8AAPZ7fwBg4JoCzM_0o2A8wxH2hsUUeiU1iuZv53L5",
+        },
+    },
+    // Specifies the set of files and directories that are included in this package.
+    // Only files and directories listed here are included in the `hash` that
+    // is computed for this package. Only files listed here will remain on disk
+    // when using the zig package manager. As a rule of thumb, one should list
+    // files required for compilation plus any license(s).
+    // Paths are relative to the build root. Use the empty string (`""`) to refer to
+    // the build root itself.
+    // A directory listed here means that all files within, recursively, are included.
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "LICENSE",
+        "src",
+        "install",
+        "scripts/copy_zig_install_files.zig",
+
+        "submodules/ghoti/build.zig",
+        "submodules/ghoti/build.zig.zon",
+        "submodules/ghoti/third-party",
+    },
+}

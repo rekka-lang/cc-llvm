@@ -1,0 +1,74 @@
+name: Continuous Deployment
+
+on:
+  push:
+    tags:
+      - '**'
+
+jobs:
+  archive_repository:
+    name: Archive repository with submodules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v7
+      - name: Archive repository
+        uses: qmonnet/git-archive-all-action@v1
+        with:
+          prefix: /
+          output-files: source.zip
+      - name: Upload archived repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: 'source'
+          path: source.zip
+  build:
+    name: Build project
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    strategy:
+      matrix:
+        arch: [x86_64]
+        os: [linux, windows]
+        abi: [gnu, musl]
+        exclude:
+          - os: windows
+            abi: musl
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Setup Zig
+        uses: ./.github/workflows/setup-zig
+      - name: Fetch dependencies
+        run: zig build --fetch
+      - name: Zig build
+        run: zig build --summary all -Dtarget=${{ matrix.arch }}-${{ matrix.os }}-${{ matrix.abi }} --release=fast
+      - name: Archive compiled version of the project
+        run: cd zig-out/${{ matrix.arch }}-${{ matrix.os }}-${{ matrix.abi }} && zip -r ../../${{ matrix.arch }}-${{ matrix.os }}-${{ matrix.abi }}.zip *
+      - name: Upload compiled version of the project
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.arch }}-${{ matrix.os }}-${{ matrix.abi }}
+          path: ${{ matrix.arch }}-${{ matrix.os }}-${{ matrix.abi }}.zip
+  publish_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - archive_repository
+      - build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          merge-multiple: true
+      - name: Create release
+        uses: softprops/action-gh-release@v3
+        with:
+          fail_on_unmatched_files: true
+          files: |
+            source.zip
+            x86_64-linux-gnu.zip
+            x86_64-linux-musl.zip
+            x86_64-windows-gnu.zip

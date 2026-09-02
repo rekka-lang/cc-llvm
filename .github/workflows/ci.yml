@@ -1,0 +1,45 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  verify:
+    name: Verify coding rules compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v7
+        with:
+          # Allow the validation of all commits
+          fetch-depth: 0
+      - name: Setup Zig
+        uses: ./.github/workflows/setup-zig
+        with:
+          cache_files: false
+      - name: Verify code
+        run: zig fmt --check . && echo "All files respect the code style."
+      - name: Verify commits
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          helpURL: https://github.com/rekka-lang/cc-llvm/tree/develop?tab=contributing-ov-file#commits
+  install_check:
+    name: Install/check project
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    if: ${{ !github.event.repository.fork }}
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v7
+        with:
+          submodules: 'recursive'
+      - name: Setup Zig
+        uses: ./.github/workflows/setup-zig
+      - name: Fetch dependencies
+        run: zig build --fetch
+      - name: Zig run install+check
+        run: zig build --summary all -Dtarget=x86_64-linux-gnu install check

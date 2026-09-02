@@ -1,0 +1,4 @@
+[submodule "submodules/ghoti"]
+	path = submodules/ghoti
+	url = https://github.com/trevorswan11/ghoti.git
+	branch = dev
