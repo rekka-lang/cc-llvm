@@ -14,8 +14,12 @@ fn checkLlvmVersion(b: *std.Build, optimize: std.builtin.OptimizeMode) !*std.Bui
 
     const target = b.graph.host;
     const llvm = try createOrAddLlvmModule(struct {
-        pub fn call(builder: *std.Build, _: []const u8, options: std.Build.Module.CreateOptions) *std.Build.Module {
-            return builder.createModule(options);
+        pub fn call(builder: *std.Build, _: []const u8, options: std.Build.Step.TranslateC.Options) ModuleWithTranslateC {
+            const translate_c = builder.addTranslateC(options);
+            return .{
+                .module = translate_c.createModule(),
+                .translate_c = translate_c,
+            };
         }
     }.call, b, target, optimize);
 
@@ -114,7 +118,12 @@ const ModuleWithName = struct {
     module: *std.Build.Module,
 };
 
-const CreateOrAddModule = fn (*std.Build, []const u8, std.Build.Module.CreateOptions) *std.Build.Module;
+const ModuleWithTranslateC = struct {
+    module: *std.Build.Module,
+    translate_c: *std.Build.Step.TranslateC,
+};
+
+const CreateOrAddModule = fn (*std.Build, []const u8, std.Build.Step.TranslateC.Options) ModuleWithTranslateC;
 
 fn createOrAddLlvmModule(createOrAddModule: *const CreateOrAddModule, b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !ModuleWithName {
     const llvm_builder = LLVMBuilder.init(b, .{ .optimize = optimize });
@@ -125,31 +134,36 @@ fn createOrAddLlvmModule(createOrAddModule: *const CreateOrAddModule, b: *std.Bu
     });
 
     const name = "llvm";
-    const module = createOrAddModule(b, name, .{
-        .root_source_file = b.path("src/root.zig"),
+    const moduleWithTranslateC = createOrAddModule(b, name, .{
+        .root_source_file = b.path("src/root.h"),
         .target = target,
         .optimize = optimize,
     });
 
     const llvm_include_paths = llvm_builder.allIncludePaths();
     for (llvm_include_paths.includes) |include| {
-        module.addIncludePath(include);
+        moduleWithTranslateC.translate_c.addIncludePath(include);
     }
     for (llvm_include_paths.config_headers) |config_header| {
-        module.addConfigHeader(config_header);
+        moduleWithTranslateC.translate_c.addConfigHeader(config_header);
     }
     // TODO: Create a PR to add it to ghoti ?
-    module.addConfigHeader(llvm_builder.target_artifacts.config_headers.llvm_config_h);
+    moduleWithTranslateC.translate_c.addConfigHeader(llvm_builder.target_artifacts.config_headers.disassemblers_def);
+    moduleWithTranslateC.translate_c.addConfigHeader(llvm_builder.target_artifacts.config_headers.asm_printers_def);
+    moduleWithTranslateC.translate_c.addConfigHeader(llvm_builder.target_artifacts.config_headers.asm_parsers_def);
+    moduleWithTranslateC.translate_c.addConfigHeader(llvm_builder.target_artifacts.config_headers.llvm_config_h);
+    moduleWithTranslateC.translate_c.addConfigHeader(llvm_builder.target_artifacts.config_headers.targets_def);
 
+    moduleWithTranslateC.module.link_libcpp = true;
     for (llvm_builder.allTargetArtifacts()) |artifact| {
-        module.linkLibrary(artifact);
+        moduleWithTranslateC.module.linkLibrary(artifact);
     }
     // TODO: Create a PR to add it to ghoti ?
-    module.linkLibrary(buildLtoFromTools(llvm_builder));
+    moduleWithTranslateC.module.linkLibrary(buildLtoFromTools(llvm_builder));
 
     return .{
         .name = name,
-        .module = module,
+        .module = moduleWithTranslateC.module,
     };
 }
 
@@ -319,8 +333,12 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     const moduleWithName = try createOrAddLlvmModule(struct {
-        pub fn call(builder: *std.Build, name: []const u8, options: std.Build.Module.CreateOptions) *std.Build.Module {
-            return builder.addModule(name, options);
+        pub fn call(builder: *std.Build, name: []const u8, options: std.Build.Step.TranslateC.Options) ModuleWithTranslateC {
+            const translate_c = builder.addTranslateC(options);
+            return .{
+                .module = translate_c.addModule(name),
+                .translate_c = translate_c,
+            };
         }
     }.call, b, target, optimize);
 
